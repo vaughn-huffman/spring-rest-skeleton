@@ -1,11 +1,49 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<beans xmlns="http://www.springframework.org/schema/beans" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+<beans xmlns="http://www.springframework.org/schema/beans" 
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:p="http://www.springframework.org/schema/p"
 	xmlns:context="http://www.springframework.org/schema/context"
-	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
-		http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd">
+	xmlns:mvc="http://www.springframework.org/schema/mvc"
+	xmlns:tx="http://www.springframework.org/schema/tx"
+
+	xsi:schemaLocation=
+		"http://www.springframework.org/schema/beans
+        http://www.springframework.org/schema/beans/spring-beans.xsd
+        
+        http://www.springframework.org/schema/tx
+        http://www.springframework.org/schema/tx/spring-tx.xsd
+        
+        http://www.springframework.org/schema/context
+        http://www.springframework.org/schema/context/spring-context.xsd
+        
+        http://www.springframework.org/schema/mvc
+        http://www.springframework.org/schema/mvc/spring-mvc-3.1.xsd">
+		
+    <mvc:annotation-driven />
     
-    <!--  -->
-         <context:component-scan base-package="com.xpanxion.rest"/>    
-      
+    <!--   <context:component-scan base-package="com.xpanxion.rest"/>  -->
+            
+    <import resource="classpath:spring/hibernate.xml"/>
+            
+    <tx:annotation-driven transaction-manager="txManager"/>
+	
+	<bean id="txManager" class="org.springframework.orm.hibernate4.HibernateTransactionManager">
+  		<property name="dataSource" ref="dataSource"/>
+  		<property name="sessionFactory" ref="sessionFactory"/>
+  	</bean>
+  	
+   <!-- 	  
+  	<bean id="viewResolver" class="org.springframework.web.servlet.view.InternalResourceViewResolver" >
+         <property name="prefix">
+             <value>/jsp/</value>
+          </property>
+         <property name="suffix">
+            <value>.jsp</value>
+         </property>
+    </bean>
+    -->
+
+       
 </beans>
+

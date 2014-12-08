@@ -27,6 +27,11 @@ import com.xpanxion.rest.dto.bean.UserBean;
 public class RestAPIController {
 	//Service for Users activity
 	private UserService userService;
+	
+	@RequestMapping(value = "/")
+	public String getMain() {
+		return "main";
+	}
 
 	@RequestMapping(value = "/user", method = RequestMethod.POST, produces="application/json")
 	public @ResponseBody UserBean postUserRB(@RequestBody UserBean user) {
@@ -65,7 +70,8 @@ public class RestAPIController {
 	 * 
 	 */
 	@RequestMapping(value = "/users", method = RequestMethod.GET, produces="application/json")
-	public @ResponseBody List<UserBean> getUsers() {
+	@ResponseBody
+	public List<UserBean> getUsers() {
         return this.userService.getUsers();
 	}
 	
@@ -111,4 +117,3 @@ public class RestAPIController {
         this.userService = service;
     }
 }
-

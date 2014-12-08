@@ -1,80 +1,209 @@
 package com.xpanxion.rest.dao;
 
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
 
-import org.springframework.beans.BeanUtils;
+import javax.annotation.Resource;
+
+import org.apache.log4j.Logger;
+import org.hibernate.HibernateException;
+import org.hibernate.Session;
+import org.hibernate.SessionFactory;
+import org.hibernate.Transaction;
 import org.springframework.stereotype.Repository;
-import org.springframework.util.LinkedMultiValueMap;
-import org.springframework.util.MultiValueMap;
-import org.springframework.web.client.RestTemplate;
 
 import com.xpanxion.rest.dto.entity.UserEntity;
-import com.xpanxion.rest.dto.bean.UserBean;
 
-
+/**
+ * Implementation of the UserDao interface. 
+ * 
+ * @author vhuffman
+ *
+ */
 @Repository
 public class UserDaoImpl implements UserDao {
-	public static final String SERVER_URI = "http://localhost:8080/";
+
+	//Logger
+	final static Logger logger = Logger.getLogger(Class.class);
 	
-	@SuppressWarnings({ "rawtypes", "unchecked" })
+	private SessionFactory sessionFactory;
+	
+	
+    /**
+     * Returns all of the users.
+     * 
+     * @return all of the users. 
+     */
+	@Override
+	@SuppressWarnings("unchecked")
 	public List<UserEntity> getAllUsers() {
-		RestTemplate restTemplate = new RestTemplate();
-		List<UserEntity> userEntities = new ArrayList<UserEntity>();
-				
-        //we can't get List<UserBean> because JSON converter doesn't know the type of
-        //object in the list and hence convert it to default JSON object type LinkedHashMap
-        List<LinkedHashMap> users = restTemplate.getForObject(SERVER_URI+"/users", List.class);
-        for(LinkedHashMap map : users){
-            UserEntity userEntity = new UserEntity();
-            userEntity.setId(((Long) map.get("id")).longValue());
-            userEntity.setUsername((String) map.get("username"));
-            userEntity.setPassword((String) map.get("password"));
-            userEntities.add(userEntity);
-        }
-		return userEntities;
+		List<UserEntity> entities = null;
+		Session session = this.sessionFactory.openSession();
+		Transaction tx = null;
+		try {
+			tx = session.beginTransaction();
+			entities = session.createQuery("FROM UserEntity").list();
+			tx.commit();
+		}catch (HibernateException he) {
+			if (tx!=null) {
+				tx.rollback();
+			}
+			he.printStackTrace();
+		}finally {
+			session.close();
+		
+		}
+		if (entities !=null) {
+			return entities;
+		}
+		else {
+			return new ArrayList<UserEntity>();
+		}
+		 
 	}
-
 	
+    /**
+     * Returns the user given user's id
+     * 
+     * @return  the user. 
+     */
+	@Override
 	public UserEntity getUser(long id) {
-		RestTemplate restTemplate = new RestTemplate();
-		UserBean user = restTemplate.getForObject(SERVER_URI+"/user/{id}", UserBean.class, id);
-		UserEntity userEntity = new UserEntity();
-		BeanUtils.copyProperties(user, userEntity);
-		return userEntity;
+		UserEntity entity = null;
+		Session session = this.sessionFactory.openSession();
+		Transaction tx = null;
+		try {
+			tx = session.beginTransaction();
+			entity = (UserEntity)session.get(UserEntity.class, id);
+			tx.commit();
+		}catch (HibernateException he) {
+			if (tx!=null) {
+				tx.rollback();
+			}
+			he.printStackTrace();
+		}finally {
+			session.close();
+		
+		}
+		if (entity !=null) {
+			return entity;
+		}
+		else {
+			return new UserEntity();
+		}
 	}
-
 	
+    /**
+     * Returns Creates/Adds the user
+     * 
+     * @return  the user. 
+     */
+	@Override
 	public UserEntity addUser(UserEntity user) {
-		RestTemplate restTemplate = new RestTemplate();
-		UserBean userBean;
-		UserEntity userEntity = new UserEntity();
-		userBean = restTemplate.postForObject(SERVER_URI+"/user", user, UserBean.class);
-		BeanUtils.copyProperties(userBean, userEntity);
-		return userEntity;
+		UserEntity entity = user;
+		long userId = -1;
+		Session session = this.sessionFactory.openSession();
+		Transaction tx = null;
+		try {
+			tx = session.beginTransaction();
+			userId = (long) session.save(user);
+			tx.commit();
+		}catch (HibernateException he) {
+			if (tx!=null) {
+				tx.rollback();
+			}
+			he.printStackTrace();
+		}finally {
+			session.close();
+		
+		}
+		
+		//Get user that was just added to populate user.Id
+		if (userId != -1)
+		{
+			entity = getUser(userId);
+		}
+		
+		logger.info("userid " + entity.getId());
+		logger.info("username " + entity.getUsername());
+		logger.info("userPW " + entity.getPassword());
+		
+		return entity;
 	}
-
 	
+    /**
+     * Returns Updates password for user
+     * 
+     * @return  the user. 
+     */
+	@Override
 	public UserEntity updateUser(long id, UserEntity user) {
-		MultiValueMap<String, String> map = new LinkedMultiValueMap<String, String>();
-		map.add("username", "Bob");
-		map.add("password", "pw");
-		RestTemplate restTemplate = new RestTemplate();
-		UserBean userBean = restTemplate.getForObject(SERVER_URI+"/user/{id}", UserBean.class, 2);
-		System.out.println("Original: user: Name="+user.getUsername()+",Password="+user.getPassword());
-		user.setPassword("updatedpassword");
-		restTemplate.put(SERVER_URI+"/user/{id}", user, user.getId());
-		System.out.println("Updated: user: Name="+user.getUsername());
-		return null;
+		UserEntity entity = null;
+		Session session = this.sessionFactory.openSession();
+		Transaction tx = null;
+		try {
+			tx = session.beginTransaction();
+			entity = (UserEntity) session.get(UserEntity.class, id);
+			entity.setPassword(user.getPassword());
+			tx.commit();
+		}catch (HibernateException he) {
+			if (tx!=null) {
+				tx.rollback();
+			}
+			he.printStackTrace();
+		}finally {
+			session.close();
+		
+		}
+		if (entity !=null) {
+			return entity;
+		}
+		else {
+			return new UserEntity();
+		}
 	}
-
 	
+    /**
+     * Returns the user given user's id
+     * 
+     * @return  the user. 
+     */
+	@Override
 	public UserEntity deleteUser(long id) {
-		RestTemplate restTemplate = new RestTemplate();
-		UserEntity userEntity = this.getUser(id);
-		restTemplate.delete(SERVER_URI+"/user/{id}", UserBean.class, id);
-		return userEntity;
+		UserEntity entity = null;
+		Session session = this.sessionFactory.openSession();
+		Transaction tx = null;
+		try {
+			tx = session.beginTransaction();
+			entity = (UserEntity)session.get(UserEntity.class, id);
+			session.delete(entity);
+			tx.commit();
+		}catch (HibernateException he) {
+			if (tx!=null) {
+				tx.rollback();
+			}
+			he.printStackTrace();
+		}finally {
+			session.close();
+		
+		}
+		if (entity !=null) {
+			return entity;
+		}
+		else {
+			return new UserEntity();
+		}
 	}
+	
+	
+	/**
+     * Sets the session factory for this dao to use. 
+     * 
+     * @param factory the session factory for this dao.
+     */
+    @Resource
+    public void setSesionFactory(SessionFactory factory) {
+        this.sessionFactory = factory;
+    }
 
 }
